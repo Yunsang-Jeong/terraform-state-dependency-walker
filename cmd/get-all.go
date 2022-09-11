@@ -7,12 +7,6 @@ import (
 
 type GetAllCmd struct{}
 
-type stringFlag struct {
-	description  string
-	defaultValue string
-	required     bool
-}
-
 var (
 	AWSClientRegion   string
 	BucketName        string
