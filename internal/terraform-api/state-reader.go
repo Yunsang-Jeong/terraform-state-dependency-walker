@@ -1,4 +1,4 @@
-package terraform
+package terraformApi
 
 import (
 	"encoding/json"

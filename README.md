@@ -8,6 +8,7 @@ Support only when terraform state is stored in aws s3
 
      - analyze analize terraform state file
        - with go routine
+       - paginator -> buffering -> analyze state -> save(ddb, json???)
 
    - save result as a json file
      - (opt) inject result to aws dynamodb

@@ -1,4 +1,4 @@
-package aws
+package awsApi
 
 import (
 	"context"
@@ -9,8 +9,8 @@ import (
 	errors "github.com/pkg/errors"
 )
 
-func (a *AWS) PutItemToAWSDynamodb(tableName string, item map[string]types.AttributeValue) error {
-	cli := dynamodb.NewFromConfig(a.AWSClientConfig)
+func PutItemToAWSDynamodb(awsConfig aws.Config, tableName string, item map[string]types.AttributeValue) error {
+	cli := dynamodb.NewFromConfig(awsConfig)
 
 	// reponse: https://pkg.go.dev/github.com/aws/aws-sdk-go-v2/service/dynamodb#PutItemOutput
 	// AWS Docs: https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_PutItem.html
@@ -28,8 +28,8 @@ func (a *AWS) PutItemToAWSDynamodb(tableName string, item map[string]types.Attri
 	return nil
 }
 
-func (a *AWS) GetItemToAWSDynamodb(tableName string, item map[string]types.AttributeValue) (*map[string]types.AttributeValue, error) {
-	cli := dynamodb.NewFromConfig(a.AWSClientConfig)
+func GetItemToAWSDynamodb(awsConfig aws.Config, tableName string, item map[string]types.AttributeValue) (*map[string]types.AttributeValue, error) {
+	cli := dynamodb.NewFromConfig(awsConfig)
 
 	resp, err := cli.GetItem(
 		context.TODO(),
