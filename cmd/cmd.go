@@ -12,5 +12,4 @@ const (
 	TerraformStateBucketName = "bucket-name"
 	TerraformStateObjectName = "state-name"
 	DynamodbTableName        = "ddb-name"
-	DynamodbTablePrimaryKey  = "ddb-pk"
 )

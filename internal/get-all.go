@@ -20,7 +20,7 @@ type GetAllConfig struct {
 	DynamodbTableName        string
 }
 
-func (c *GetAllConfig) analyzeTerraformState(wg *sync.WaitGroup, errChannel chan<- error, logChannel chan<- terraformApi.ParsedTerraformBlock, terraformStateObjectName string) {
+func (c *GetAllConfig) analyzeTerraformStateAndInputResult(wg *sync.WaitGroup, errChannel chan<- error, logChannel chan<- terraformApi.ParsedTerraformBlock, terraformStateObjectName string) {
 	defer wg.Done()
 
 	terraformStateLocation := fmt.Sprintf("%s/%s", c.TerraformStateBucketName, terraformStateObjectName)
@@ -84,7 +84,7 @@ func (c *GetAllConfig) GetAllStart() error {
 
 	for _, object := range *objectList {
 		wg.Add(1)
-		go c.analyzeTerraformState(&wg, errChannel, logChannel, object)
+		go c.analyzeTerraformStateAndInputResult(&wg, errChannel, logChannel, object)
 	}
 
 	wg.Wait()

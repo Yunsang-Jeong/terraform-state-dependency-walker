@@ -2,11 +2,13 @@ package internal
 
 import (
 	"fmt"
+	"strings"
 
 	awsApi "github.com/Yunsang-Jeong/terraform-state-dependency-walker/internal/aws-api"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/pkg/errors"
 )
 
 type CheckConfig struct {
@@ -15,32 +17,47 @@ type CheckConfig struct {
 	TerraformStateBucketName string
 	TerraformStateObjectName string
 	DynamodbTableName        string
-	DynamodbTablePrimaryKey  string
+}
+
+type ScanResult struct {
+	TerraformStateLocation         string   `dynamodbav:"TerraformStateLocation,string"`
+	ResourceBlocksUsingRemoteState []string `dynamodbav:"ResourceBlocksUsingRemoteState,stringset"`
+	DataBlocksWithTypeRemoteState  []string `dynamodbav:"DataBlocksWithTypeRemoteState,stringset"`
 }
 
 func (c *CheckConfig) CheckStart() error {
 	awsClientConfig, err := awsApi.SetAWSClient(c.AWSClientRegion)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "[internal:CheckStart]")
 	}
 
 	c.AWSClientConfig = *awsClientConfig
 
 	ddbQuery := make(map[string]types.AttributeValue)
-	ddbQuery["Data"], err = attributevalue.Marshal(fmt.Sprintf("%s/%s", c.TerraformStateBucketName, c.TerraformStateObjectName))
+	ddbQuery[":key"], err = attributevalue.Marshal(fmt.Sprintf("%s/%s", c.TerraformStateBucketName, c.TerraformStateObjectName))
 	if err != nil {
-		return err
+		return errors.Wrap(err, "[internal:CheckStart]")
 	}
 
-	ddbResp, err := awsApi.GetItemToAWSDynamodb(c.AWSClientConfig, c.DynamodbTableName, ddbQuery)
+	ddbResp, err := awsApi.QueryToAWSDynamodb(c.AWSClientConfig, c.DynamodbTableName, ddbQuery)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "[internal:CheckStart]")
 	}
 
-	fmt.Print(*ddbResp)
-	// for k, _ := range *ddbResp {
-	// 	fmt.Printf("[%s]", k)
-	// }
+	result := []ScanResult{}
+	if err := attributevalue.UnmarshalListOfMaps(*ddbResp, &result); err != nil {
+		return errors.Wrap(err, "[internal:CheckStart]")
+	}
+
+	fmt.Printf("✨ Find %d dependencies!\n", len(*ddbResp))
+	for index, r := range result {
+		fmt.Printf(" ✔ [%d] %s", index, r.TerraformStateLocation)
+		if len(r.ResourceBlocksUsingRemoteState) > 0 {
+			fmt.Printf(" (maybe used in '%s')\n", strings.Join(r.ResourceBlocksUsingRemoteState, "', '"))
+		} else {
+			fmt.Print("\n")
+		}
+	}
 
 	return nil
 }

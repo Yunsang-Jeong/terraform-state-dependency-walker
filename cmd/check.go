@@ -29,12 +29,6 @@ var checkStringFlags = map[string]stringFlag{
 		description: "[req] The name of AWS DynamoDB table to put dependecy info",
 		requirement: true,
 	},
-	DynamodbTablePrimaryKey: {
-		shorten:      "p",
-		defaultValue: "StateFileLocation",
-		description:  "[opt] The name of primary key in AWS DynamoDB table",
-		requirement:  false,
-	},
 }
 
 func (g *CheckCmd) Init() *cobra.Command {
@@ -48,7 +42,6 @@ func (g *CheckCmd) Init() *cobra.Command {
 			config.TerraformStateBucketName, _ = cmd.Flags().GetString(TerraformStateBucketName)
 			config.TerraformStateObjectName, _ = cmd.Flags().GetString(TerraformStateObjectName)
 			config.DynamodbTableName, _ = cmd.Flags().GetString(DynamodbTableName)
-			config.DynamodbTablePrimaryKey, _ = cmd.Flags().GetString(DynamodbTablePrimaryKey)
 
 			if err := config.CheckStart(); err != nil {
 				return err

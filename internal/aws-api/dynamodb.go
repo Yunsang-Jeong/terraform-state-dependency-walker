@@ -27,31 +27,35 @@ func PutItemToAWSDynamodb(awsConfig aws.Config, tableName string, item map[strin
 	return nil
 }
 
-func GetItemToAWSDynamodb(awsConfig aws.Config, tableName string, item map[string]types.AttributeValue) (*map[string]types.AttributeValue, error) {
-	cli := dynamodb.NewFromConfig(awsConfig)
-
-	resp, err := cli.GetItem(context.TODO(),
-		&dynamodb.GetItemInput{
-			TableName: aws.String(tableName),
-			Key:       item,
-		},
-	)
-	if err != nil {
-		return nil, errors.Wrap(err, "[awsAPi:GetItemToAWSDynamodb] fail to get item to AWS DynamoDB")
-	}
-
-	return &resp.Item, nil
-}
-
-// func QueryToAWSDynamodb(awsConfig aws.Config, tableName string, item map[string]types.AttributeValue) (*map[string]types.AttributeValue, error) {
+// func GetItemToAWSDynamodb(awsConfig aws.Config, tableName string, item map[string]types.AttributeValue) (*map[string]types.AttributeValue, error) {
 // 	cli := dynamodb.NewFromConfig(awsConfig)
 
-// 	cli.Scan(context.TODO(),
-// 		&dynamodb.ScanInput{
+// 	resp, err := cli.GetItem(context.TODO(),
+// 		&dynamodb.GetItemInput{
 // 			TableName: aws.String(tableName),
-
-// 		}
+// 			Key:       item,
+// 		},
 // 	)
+// 	if err != nil {
+// 		return nil, errors.Wrap(err, "[awsAPi:GetItemToAWSDynamodb] fail to get item to AWS DynamoDB")
+// 	}
 
 // 	return &resp.Item, nil
 // }
+
+func QueryToAWSDynamodb(awsConfig aws.Config, tableName string, item map[string]types.AttributeValue) (*[]map[string]types.AttributeValue, error) {
+	cli := dynamodb.NewFromConfig(awsConfig)
+
+	resp, err := cli.Scan(context.TODO(),
+		&dynamodb.ScanInput{
+			TableName:                 aws.String(tableName),
+			FilterExpression:          aws.String("contains(DataBlocksWithTypeRemoteState, :key)"),
+			ExpressionAttributeValues: item,
+		},
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "[awsAPi:QueryToAWSDynamodb] fail to query item to AWS DynamoDB")
+	}
+
+	return &resp.Items, nil
+}
