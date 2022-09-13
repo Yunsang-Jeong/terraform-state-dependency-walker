@@ -37,7 +37,7 @@ func GetFilteredBucketObjectList(awsConfig aws.Config, bucketName string, object
 	for paginator.HasMorePages() {
 		page, err := paginator.NextPage(context.TODO())
 		if err != nil {
-			return nil, errors.Wrap(err, "fail to paginate of ListObjectV2")
+			return nil, errors.Wrap(err, "[awsAPi:GetFilteredBucketObjectList]fail to paginate of ListObjectV2")
 		}
 
 		for _, obj := range page.Contents {
@@ -65,7 +65,7 @@ func DownloadBucketObjectToBuffer(awsConfig aws.Config, bucketName string, objec
 		},
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("fail to download object(%s) from bucket(%s)", objectName, bucketName))
+		return nil, errors.Wrap(err, fmt.Sprintf("[awsAPi:DownloadBucketObjectToBuffer] fail to download object(%s) from bucket(%s)", objectName, bucketName))
 	}
 
 	return buffer.Bytes(), nil

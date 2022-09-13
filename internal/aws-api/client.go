@@ -13,7 +13,7 @@ func SetAWSClient(awsClientRegion string) (*aws.Config, error) {
 		config.WithRegion(awsClientRegion),
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "fail to create a new aws client")
+		return nil, errors.Wrap(err, "[awsApi:SetAWSClient] fail to create a new aws client")
 	}
 
 	return &cfg, nil

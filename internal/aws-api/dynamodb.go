@@ -14,15 +14,14 @@ func PutItemToAWSDynamodb(awsConfig aws.Config, tableName string, item map[strin
 
 	// reponse: https://pkg.go.dev/github.com/aws/aws-sdk-go-v2/service/dynamodb#PutItemOutput
 	// AWS Docs: https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_PutItem.html
-	_, err := cli.PutItem(
-		context.TODO(),
+	_, err := cli.PutItem(context.TODO(),
 		&dynamodb.PutItemInput{
 			TableName: aws.String(tableName),
 			Item:      item,
 		},
 	)
 	if err != nil {
-		return errors.Wrap(err, "fail to put item to AWS DynamoDB")
+		return errors.Wrap(err, "[awsAPi:PutItemToAWSDynamodb] fail to put item to AWS DynamoDB")
 	}
 
 	return nil
@@ -31,16 +30,28 @@ func PutItemToAWSDynamodb(awsConfig aws.Config, tableName string, item map[strin
 func GetItemToAWSDynamodb(awsConfig aws.Config, tableName string, item map[string]types.AttributeValue) (*map[string]types.AttributeValue, error) {
 	cli := dynamodb.NewFromConfig(awsConfig)
 
-	resp, err := cli.GetItem(
-		context.TODO(),
+	resp, err := cli.GetItem(context.TODO(),
 		&dynamodb.GetItemInput{
 			TableName: aws.String(tableName),
 			Key:       item,
 		},
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "fail to get item to AWS DynamoDB")
+		return nil, errors.Wrap(err, "[awsAPi:GetItemToAWSDynamodb] fail to get item to AWS DynamoDB")
 	}
 
 	return &resp.Item, nil
 }
+
+// func QueryToAWSDynamodb(awsConfig aws.Config, tableName string, item map[string]types.AttributeValue) (*map[string]types.AttributeValue, error) {
+// 	cli := dynamodb.NewFromConfig(awsConfig)
+
+// 	cli.Scan(context.TODO(),
+// 		&dynamodb.ScanInput{
+// 			TableName: aws.String(tableName),
+
+// 		}
+// 	)
+
+// 	return &resp.Item, nil
+// }

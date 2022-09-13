@@ -53,50 +53,73 @@ type TerraformStateResourceInstanceAttributeOutputs struct {
 	TheOthers map[string]interface{} `json:"-"`
 }
 
-func ReadTerraformState(terraformStateData []byte) (*TerraformState, error) {
-	terraformState := &TerraformState{}
-
-	if err := json.Unmarshal(terraformStateData, terraformState); err != nil {
-		return nil, errors.Wrap(err, "fail to unmarshal terraform state")
-	}
-
-	return terraformState, nil
+type ParsedTerraformBlock struct {
+	TerraformStateLocation              string   `dynamodbav:"TerraformStateLocation,string"`
+	ResourceBlocksUsingRemoteState      []string `dynamodbav:"ResourceBlocksUsingRemoteState,stringset"`
+	ResourceBlocksUsingRemoteStateCount int      `dynamodbav:"-"`
+	DataBlocksWithTypeRemoteState       []string `dynamodbav:"DataBlocksWithTypeRemoteState,stringset"`
+	DataBlocksWithTypeRemoteStateCount  int      `dynamodbav:"-"`
 }
 
-func ParseDataBlockUsingRemoteState(terraformState *TerraformState) (*[]string, error) {
-	dataBlockUsingRemoteState := []string{}
+func removeDuplicate[T string | int](sliceList []T) []T {
+	allKeys := make(map[T]bool)
+	list := []T{}
+	for _, item := range sliceList {
+		if _, value := allKeys[item]; !value {
+			allKeys[item] = true
+			list = append(list, item)
+		}
+	}
 
+	return list
+}
+
+func MakeTerraformStateObjectFromData(terraformStateData []byte) (*TerraformState, error) {
+	terraformStateObject := &TerraformState{}
+
+	if err := json.Unmarshal(terraformStateData, terraformStateObject); err != nil {
+		return nil, errors.Wrap(err, "[terraformApi:ReadTerraformState] fail to unmarshal terraform state")
+	}
+
+	return terraformStateObject, nil
+}
+
+func (p *ParsedTerraformBlock) ParseTerraformBlocksAssociatedWithRemoteState(terraformState *TerraformState) error {
 	for _, resource := range terraformState.Resources {
-		if resource.Mode == "data" && resource.Type == "terraform_remote_state" {
-			for _, instance := range resource.Instances {
+		for _, instance := range resource.Instances {
+
+			if resource.Mode == "data" && resource.Type == "terraform_remote_state" {
+				/*
+					Parse the data block using remote state
+				*/
 				attribute := &TerraformStateResourceInstanceAttribute{}
 
 				if err := json.Unmarshal(instance.Attributes, attribute); err != nil {
-					return nil, errors.Wrap(err, "fail to unmarshal terraform state")
+					return errors.Wrap(err, "[terraformApi:ParseTerraformBlocksUsingRemoteState] fail to unmarshal terraform state")
 				}
 
 				dataBlockInfo := strings.Join([]string{attribute.Config.Value["bucket"], attribute.Config.Value["key"]}, "/")
-				dataBlockUsingRemoteState = append(dataBlockUsingRemoteState, dataBlockInfo)
-			}
-		}
-	}
-
-	return &dataBlockUsingRemoteState, nil
-}
-
-func ParseResourceBlockUsingRemoteStateBlock(terraformState *TerraformState) (*[]string, error) {
-	resourceBlockUsingRemoteStateBlock := []string{}
-
-	for _, resource := range terraformState.Resources {
-		for _, instance := range resource.Instances {
-			for _, depndency := range instance.Dependencies {
-				if strings.HasPrefix(depndency, "data.terraform_remote_state") {
-					resourceBlockName := strings.Join([]string{resource.Module, resource.Type, resource.Name}, ".")
-					resourceBlockUsingRemoteStateBlock = append(resourceBlockUsingRemoteStateBlock, resourceBlockName)
+				p.DataBlocksWithTypeRemoteState = append(p.DataBlocksWithTypeRemoteState, dataBlockInfo)
+			} else {
+				/*
+					Parse the resource block using remote state
+				*/
+				for _, depndency := range instance.Dependencies {
+					if strings.HasPrefix(depndency, "data.terraform_remote_state") {
+						resourceBlockName := strings.Join([]string{resource.Module, resource.Type, resource.Name}, ".")
+						p.ResourceBlocksUsingRemoteState = append(p.ResourceBlocksUsingRemoteState, resourceBlockName)
+					}
 				}
 			}
-		}
-	}
 
-	return &resourceBlockUsingRemoteStateBlock, nil
+		}
+
+	}
+	p.DataBlocksWithTypeRemoteState = removeDuplicate(p.DataBlocksWithTypeRemoteState)
+	p.DataBlocksWithTypeRemoteStateCount = len(p.DataBlocksWithTypeRemoteState)
+
+	p.ResourceBlocksUsingRemoteState = removeDuplicate(p.ResourceBlocksUsingRemoteState)
+	p.ResourceBlocksUsingRemoteStateCount = len(p.ResourceBlocksUsingRemoteState)
+
+	return nil
 }
